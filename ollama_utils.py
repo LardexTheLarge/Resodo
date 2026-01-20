@@ -6,7 +6,7 @@ import os
 from openai import OpenAI
 
 
-def legal_doc_creation(company_name: str, reason: str, dev_mode: bool = True, model: str = 'gpt-oss:20b') -> str:
+def legal_doc_creation(company_name: str, reason: str, dev_mode: bool = False, model: str = 'gpt-oss:20b') -> str:
     """
     Creates a legal document for resolving complaints against a company or individual.
     
@@ -74,7 +74,7 @@ def legal_doc_creation(company_name: str, reason: str, dev_mode: bool = True, mo
     
 
 
-def extract_contact_info(page_text: str, dev_mode: bool = True, model: str = "gpt-oss:20b") -> list:
+def extract_contact_info(page_text: str, dev_mode: bool = False, model: str = "gpt-oss:20b") -> list:
         prompt = f"""
 You are an intelligent contact information extractor.
 
