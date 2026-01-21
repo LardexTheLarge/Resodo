@@ -54,7 +54,6 @@ jsonschema-specifications==2025.9.1
 lark==1.3.0
 litellm==1.77.4
 lxml==5.4.0
-madoka==0.7.1
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
 mdurl==0.1.2
