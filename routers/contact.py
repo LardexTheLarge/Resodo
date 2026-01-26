@@ -38,10 +38,10 @@ async def get_contact_info(
         resolution = validate_resolution(resolution)
         
         
-        cache_key = f'{website}_{resolution}'
-        if cache_key in crawl_cache:
-            print(f'Returning cached results for {website}')
-            return crawl_cache[cache_key]
+        # cache_key = f'{website}_{resolution}'
+        # if cache_key in crawl_cache:
+        #     print(f'Returning cached results for {website}')
+        #     return crawl_cache[cache_key]
         
         # Takes the website URL of the company and finds the contact page
         print(f'Extracting Website...')
@@ -76,7 +76,7 @@ async def get_contact_info(
             'timestamp': datetime.now().isoformat()
         }
         
-        crawl_cache[cache_key] = response_data
+        # crawl_cache[cache_key] = response_data
         
         
         if contacts:
@@ -142,21 +142,21 @@ async def get_contact_info(
 
 
 
-# http://localhost:8000/api/clear-cache
-@router.get('/clear-cache')
-async def clear_cache():
-    """Clear the crawl cache"""
-    global crawl_cache
-    cache_size = len(crawl_cache)
-    crawl_cache = {}
-    return {"message": f"Cache cleared successfully", "cleared_entries": cache_size}
+# # http://localhost:8000/api/clear-cache
+# @router.get('/clear-cache')
+# async def clear_cache():
+#     """Clear the crawl cache"""
+#     global crawl_cache
+#     cache_size = len(crawl_cache)
+#     crawl_cache = {}
+#     return {"message": f"Cache cleared successfully", "cleared_entries": cache_size}
 
-# http://localhost:8000/api/cache-info
-@router.get('/cache-info')
-async def cache_info():
-    """Get information about the cache"""
-    print(f"Cached info: {crawl_cache}")
-    return {
-        "cache_size": len(crawl_cache),
-        "cached_keys": list(crawl_cache.keys())
-    }
+# # http://localhost:8000/api/cache-info
+# @router.get('/cache-info')
+# async def cache_info():
+#     """Get information about the cache"""
+#     print(f"Cached info: {crawl_cache}")
+#     return {
+#         "cache_size": len(crawl_cache),
+#         "cached_keys": list(crawl_cache.keys())
+#     }
