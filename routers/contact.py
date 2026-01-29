@@ -1,6 +1,6 @@
-from datetime import datetime
 from fastapi import APIRouter, Query, HTTPException, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
+import tempfile
 
 from ollama_utils import extract_contact_info, legal_doc_creation
 from webcrawler import find_contact_url
@@ -14,19 +14,15 @@ from utils import (
     legal_doc_to_pdf
     )
 
-import tempfile
-
 router = APIRouter()
-crawl_cache = {}
 
-# http://localhost:8000/api/contact-info?respondent={name}&resolution={text}
 @router.get('/contact-info')
 async def get_contact_info(
     request: Request,
     respondent: str = Query(..., min_length=2, max_length=200, description='Name of the company to contact'),
     website: str = Query(..., regex=r'^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(:[0-9]+)?(\/.*)?$', description='Company website URL'),
     filer: str = Query(..., min_length=2, max_length=100, description='Name of the filer'),
-    filer_info: list[str] = Query(..., min_length=1, max_length=20, description='Information about the filer'),
+    filer_contact_info: list[str] = Query(..., min_length=1, max_length=20, description='Information about the filer'),
     resolution: str = Query(..., min_length=10, max_length=5000, description='Reason for contacting this company')
     
 ):
@@ -34,14 +30,8 @@ async def get_contact_info(
         check_rate_limit(request)
         
         website = validate_website(website)
-        filer_info = validate_filer_info(filer_info)
+        filer_contact_info = validate_filer_info(filer_contact_info)
         resolution = validate_resolution(resolution)
-        
-        
-        # cache_key = f'{website}_{resolution}'
-        # if cache_key in crawl_cache:
-        #     print(f'Returning cached results for {website}')
-        #     return crawl_cache[cache_key]
         
         # Takes the website URL of the company and finds the contact page
         print(f'Extracting Website...')
@@ -52,12 +42,10 @@ async def get_contact_info(
             return {
             'respondent': respondent,
             'filer': filer,
-            'filer_info': filer_info,
+            'filer_contact_info': filer_contact_info,
             'reason': resolution,
             'website': website,
-            'contacts': [],
             'message': 'No contact information found',
-            'timestamp': datetime.now().isoformat()
         }
             
         page_chunk = extract_contact_chunks(page_text, context_chars=1000)
@@ -69,31 +57,24 @@ async def get_contact_info(
         response_data = {
             'respondent': respondent,
             'filer': filer,
-            'filer_info': filer_info,
+            'filer_contact_info': filer_contact_info,
             'reason': resolution,
             'website': website,
-            'contacts': contacts,
-            'timestamp': datetime.now().isoformat()
+            'contacts': contacts
         }
-        
-        # crawl_cache[cache_key] = response_data
         
         
         if contacts:
             try:
-                #legal document creation
-                respondent_data = [contact['value'] for contact in response_data['contacts']]
-                filer_data = response_data['filer_info']
-
                 print('Generating Legal document...')
+                respondent_data = [contact['value'] for contact in response_data['contacts']]
+                filer_data = response_data['filer_contact_info']
                 legal_document = legal_doc_creation(
                     company_name=response_data['respondent'],
                     reason=response_data['reason'],
                 )
                 
-                #Validate legal document
                 legal_document = validate_legal_document(legal_document)
-                
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf', prefix='legal_doc_') as tmp_file:
                     temp_pdf_path = tmp_file.name
                     
@@ -139,24 +120,3 @@ async def get_contact_info(
             status_code=500, 
             detail="An unexpected error occurred. Please try again later."
         )
-
-
-
-# # http://localhost:8000/api/clear-cache
-# @router.get('/clear-cache')
-# async def clear_cache():
-#     """Clear the crawl cache"""
-#     global crawl_cache
-#     cache_size = len(crawl_cache)
-#     crawl_cache = {}
-#     return {"message": f"Cache cleared successfully", "cleared_entries": cache_size}
-
-# # http://localhost:8000/api/cache-info
-# @router.get('/cache-info')
-# async def cache_info():
-#     """Get information about the cache"""
-#     print(f"Cached info: {crawl_cache}")
-#     return {
-#         "cache_size": len(crawl_cache),
-#         "cached_keys": list(crawl_cache.keys())
-#     }

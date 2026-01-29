@@ -1,11 +1,9 @@
-from typing import Any, List, Dict, Optional
+from typing import List, Optional
 from fastapi import HTTPException, Request
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from datetime import datetime
 import os
 import re
@@ -110,28 +108,44 @@ def check_rate_limit(request: Request):
 
 def extract_contact_chunks(page_text: str, context_chars: 1000) -> Optional[str]:
     """
-    Find an email in a chunk of text and return the surrounding text with context.
+    Find an email OR phone number in a chunk of text and return the surrounding text with context.
     
     Args:
-        text: The input text to search through
+        page_text: The input text to search through
         context_chars: Number of characters of context to include on each side
     
     Returns:
-        The text chunk containing the email with surrounding context, or None if no email found
+        The text chunk containing the email or phone number with surrounding context, 
+        or None if neither is found
     """
-    # Regex pattern for email
     email_pattern = re.compile(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b')
     
-    # Find email match
-    email_match = email_pattern.search(page_text)
+    phone_pattern = re.compile(
+        r'(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b|'  # Standard formats
+        r'\b\d{3}[-.\s]?\d{4}\b'  # Local formats (7 digits)
+    )
     
-    if not email_match:
-        print('No email found in page text.')
+    email_match = email_pattern.search(page_text)
+    phone_match = phone_pattern.search(page_text)
+    
+    if not email_match and not phone_match:
+        print('No contact info in text chunk')
         return None
     
+    if email_match and phone_match:
+        # Use the earlier match
+        match = email_match if email_match.start() < phone_match.start() else phone_match
+        print(f'Found both email and phone number')
+    elif email_match:
+        match = email_match
+        print(f'Found email')
+    else:
+        match = phone_match
+        print(f'Found phone number')
+    
     # Extract context window
-    start = max(0, email_match.start() - context_chars)
-    end = min(len(page_text), email_match.end() + context_chars)
+    start = max(0, match.start() - context_chars)
+    end = min(len(page_text), match.end() + context_chars)
     
     return page_text[start:end].strip()
     

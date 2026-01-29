@@ -4,13 +4,13 @@ import uvicorn
 from fastapi import FastAPI
 from routers.contact import router as contact_router
 
-app = FastAPI(title='AI web scrapper')
+app = FastAPI(title='Resodo - AI Web Scraper for Contact Info and Legal Documents')
 
-app.include_router(contact_router, prefix='/api', tags=['contact'])
+app.include_router(contact_router)
 
 @app.get('/')
 async def root():
-    return {'message': 'AI web scrapper API', 'status': 'running'}
+    return {'message': 'ALL SYSTEMS ONLINE', 'status': 'running'}
 
 class ProactorServer(uvicorn.Server):
     def run(self, sockets=None):
